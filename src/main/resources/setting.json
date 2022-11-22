@@ -1,0 +1,61 @@
+{
+  "elementType": "HEXAHEDRON",
+  "cameraType": "QUATERNION",
+  "activeResult": "STRESS_X",
+  "drawingMode": "PANORAMA",
+  "profileFace": [
+    1,
+    0,
+    0,
+    -200
+  ],
+  "caseNum": 2,
+  "coefficients": [
+    1,
+    0
+  ],
+  "isImport": 0,
+  "isImportElement": 1,
+  "useRootPath": 1,
+  "vShaderFile": "shaders/face.vs",
+  "fShaderFile": "shaders/face.fs",
+  "elementFile": "data/ELIST.txt",
+  "elementFileForSolve": "elementData/ELIST.txt",
+  "nodeFileForSolve": "elementData/StressX.txt",
+  "nodeFileMapList": [
+    {
+      "DEFORMATION_X": "data/x/DeformationX.txt",
+      "DEFORMATION_Y": "data/x/DeformationY.txt",
+      "DEFORMATION_Z": "data/x/DeformationZ.txt",
+      "STRESS_X": "data/x/StressX.txt",
+      "STRESS_Y": "data/x/StressY.txt",
+      "STRESS_Z": "data/x/StressZ.txt",
+      "STRESS_XY": "data/x/StressXY.txt",
+      "STRESS_XZ": "data/x/StressXZ.txt",
+      "STRESS_YZ": "data/x/StressYZ.txt",
+      "STRAIN_X": "data/x/StrainX.txt",
+      "STRAIN_Y": "data/x/StrainY.txt",
+      "STRAIN_Z": "data/x/StrainZ.txt",
+      "STRAIN_XY": "data/x/StrainXY.txt",
+      "STRAIN_XZ": "data/x/StrainXZ.txt",
+      "STRAIN_YZ": "data/x/StrainYZ.txt"
+    },
+    {
+      "DEFORMATION_X": "data/y/DeformationX.txt",
+      "DEFORMATION_Y": "data/y/DeformationY.txt",
+      "DEFORMATION_Z": "data/y/DeformationZ.txt",
+      "STRESS_X": "data/y/StressX.txt",
+      "STRESS_Y": "data/y/StressY.txt",
+      "STRESS_Z": "data/y/StressZ.txt",
+      "STRESS_XY": "data/y/StressXY.txt",
+      "STRESS_XZ": "data/y/StressXZ.txt",
+      "STRESS_YZ": "data/y/StressYZ.txt",
+      "STRAIN_X": "data/y/StrainX.txt",
+      "STRAIN_Y": "data/y/StrainY.txt",
+      "STRAIN_Z": "data/y/StrainZ.txt",
+      "STRAIN_XY": "data/y/StrainXY.txt",
+      "STRAIN_XZ": "data/y/StrainXZ.txt",
+      "STRAIN_YZ": "data/y/StrainYZ.txt"
+    }
+  ]
+}

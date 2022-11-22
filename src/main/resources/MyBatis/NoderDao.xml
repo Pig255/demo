@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.itheima.dao.NoderDao">
+
+    <select id="finda" resultType="java.lang.Double">
+        select LOC_Z from node_table where ID=1
+    </select>
+
+    <delete id="deleteAll">
+        delete from node_table
+    </delete>
+
+    <insert id="insertList" parameterType="java.util.List">
+        insert into node_table (ID, LOC_X, LOC_Y, LOC_Z, ${arg1})
+        VALUES
+        <foreach collection ="arg0" item="noder" separator =",">
+            (#{noder.ID},  #{noder.LOC_X}, #{noder.LOC_Y}, #{noder.LOC_Z}, #{noder.data})
+        </foreach >
+    </insert>
+
+    <select id="getAllNoder" fetchSize="10000" resultType="com.itheima.domain.Noder">
+        select * from node_table where (ID)<![CDATA[ > ]]>0
+    </select>
+
+</mapper>
