@@ -10,7 +10,11 @@ import com.itheima.aScenary.enums.CameraTypeEnum;
 import com.itheima.aScenary.enums.DrawingModeEnum;
 import com.itheima.aScenary.enums.ElementTypeEnum;
 import com.itheima.aScenary.enums.ResultTypeEnum;
+import com.itheima.aScenary.repository.impl.HexahedronElementDataRepository;
+import com.itheima.aScenary.repository.impl.TenNodeTetrahedronElementDataRepository;
+import com.itheima.aScenary.repository.impl.TetrahedronElementDataRepository;
 import com.itheima.aScenary.util.NormalUtil;
+import org.apache.ibatis.annotations.Select;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -103,8 +107,16 @@ public class CMDSetting {
         this.vShaderFile = buildFilePath(useRootPath, jsonRootNode.get("vShaderFile").asText());
         this.fShaderFile = buildFilePath(useRootPath, jsonRootNode.get("fShaderFile").asText());
         this.elementFile = buildFilePath(useRootPath, jsonRootNode.get("elementFile").asText());
-        this.elementFileForSolve=buildFilePath(useRootPath, jsonRootNode.get("elementFileForSolve").asText());
-        this.nodeFileForSolve=buildFilePath(useRootPath, jsonRootNode.get("nodeFileForSolve").asText());
+        switch (this.elementType) {
+            case TETRAHEDRON:
+                this.elementFileForSolve=buildFilePath(useRootPath, jsonRootNode.get("elementFileForSolveFour").asText());
+                this.nodeFileForSolve=buildFilePath(useRootPath, jsonRootNode.get("nodeFileForSolveFour").asText());
+                break;
+            case HEXAHEDRON:
+                this.elementFileForSolve=buildFilePath(useRootPath, jsonRootNode.get("elementFileForSolveSix").asText());
+                this.nodeFileForSolve=buildFilePath(useRootPath, jsonRootNode.get("nodeFileForSolveSix").asText());
+                break;
+        }
         this.nodeFileMapList = new ArrayList<>();
         JsonNode nodeFileMapListNode = jsonRootNode.get("nodeFileMapList");
         for (int i = 0; i < caseNum; i++) {

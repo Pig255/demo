@@ -149,7 +149,7 @@ public class SolveHEX extends SolveELE {
             }
         }
 
-        //求解线程方程组，得出位移（调用jar包）
+        //求解线程方程组，得出位移
         U = K.invert().mult(Force);
         return U;
     }
@@ -301,18 +301,7 @@ public class SolveHEX extends SolveELE {
 
     //将单元文件传入数据库
     public void inputElementFromFile() {
-        ElementDataRepository elementDataRepository = null;
-        switch (setting.getElementType()) {
-            case TETRAHEDRON:
-                elementDataRepository = new TetrahedronElementDataRepository();
-                break;
-            case HEXAHEDRON:
-                elementDataRepository = new HexahedronElementDataRepository();
-                break;
-            case TEN_NODE_TETRAHEDRON:
-                elementDataRepository = new TenNodeTetrahedronElementDataRepository();
-                break;
-        }
+        ElementDataRepository elementDataRepository = new HexahedronElementDataRepository();
         elementDataRepository.initForSolve(this.setting);
     }
 }

@@ -224,6 +224,7 @@ public class NodeRepository implements CMDSettingListener {
         try (BufferedInputStream nodeIn = new BufferedInputStream(
                 new FileInputStream(nodeFile))) {
             Scanner sc = new Scanner(nodeIn);
+            double wu;
             while (sc.hasNext()) {
                 if (!sc.hasNextDouble()) {
                     sc.next();
@@ -233,7 +234,7 @@ public class NodeRepository implements CMDSettingListener {
                 double locx = sc.nextDouble();
                 double locy = sc.nextDouble();
                 double locz = sc.nextDouble();
-                double wu = sc.nextDouble();
+                wu = sc.nextDouble();
                 Noder curNoder = new Noder();
                 curNoder.setID(index);
                 curNoder.setLOC_X(locx);

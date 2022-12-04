@@ -1,5 +1,5 @@
 {
-  "elementType": "HEXAHEDRON",
+  "elementType": "TETRAHEDRON",
   "cameraType": "QUATERNION",
   "activeResult": "STRESS_X",
   "drawingMode": "PANORAMA",
@@ -20,8 +20,10 @@
   "vShaderFile": "shaders/face.vs",
   "fShaderFile": "shaders/face.fs",
   "elementFile": "data/ELIST.txt",
-  "elementFileForSolve": "elementData/ELIST.txt",
-  "nodeFileForSolve": "elementData/StressX.txt",
+  "elementFileForSolveSix": "elementData/six/ELIST.txt",
+  "nodeFileForSolveSix": "elementData/six/StressX.txt",
+  "elementFileForSolveFour": "elementData/four/ELIST.txt",
+  "nodeFileForSolveFour": "elementData/four/StressX.txt",
   "nodeFileMapList": [
     {
       "DEFORMATION_X": "data/x/DeformationX.txt",
