@@ -48,6 +48,7 @@ public class SolveTET extends SolveELE {
         double u = 0.3;
         SimpleMatrix U = staticSolver(E, u, Forces, Constraints, Nodes, Elements);
         //根据所得的U求出各节点对应的应力、应变值
+
         //将结果写入数据库
         Noder nodeTemp;
         for (int i = 0; i < noderList.size(); i++) {
@@ -67,7 +68,6 @@ public class SolveTET extends SolveELE {
         int NodeCount = noderList.size();
         int ElementCount = elementorList.size();
         int Dofs = Dof * NodeCount;
-        SimpleMatrix U = new SimpleMatrix(Dofs, 1);
         SimpleMatrix K = new SimpleMatrix(Dofs, Dofs);
         SimpleMatrix Force = new SimpleMatrix(Dofs, 1);
         SimpleMatrix D = LinearIsotropicD(E, u);
@@ -82,9 +82,10 @@ public class SolveTET extends SolveELE {
                 xyz_ori[p][2] = noder.getLOC_Z();
             }
             SimpleMatrix xyz = new SimpleMatrix(xyz_ori);
+
             SimpleMatrix ElementStiffnessMatrix = Ke(D, xyz);
+
             //计算单元节点自由度编号
-            //SimpleMatrix ElementNodeDOF=new SimpleMatrix(1,24);
             int[] ElementNodeDOF = new int[12];
             //将Ke往K里组装
             for (int j = 0; j < 4; j++) {
@@ -94,49 +95,49 @@ public class SolveTET extends SolveELE {
                 ElementNodeDOF[II + 1] = temp + 1;
                 ElementNodeDOF[II + 2] = temp + 2;
             }
-            for (int p = 0; p < 24; p++) {
-                for (int q = 0; q < 24; q++) {
-                    K.set(ElementNodeDOF[p], ElementNodeDOF[q], ElementStiffnessMatrix.get(p, q));
+            for (int p = 0; p < 12; p++) {
+                for (int q = 0; q < 12; q++) {
+                    K.set(ElementNodeDOF[p], ElementNodeDOF[q],
+                    (K.get(ElementNodeDOF[p], ElementNodeDOF[q])+ElementStiffnessMatrix.get(p, q)));
                 }
             }
         }
         //施加外力
+        if (Forces.length > 0) {
+            SimpleMatrix Force_1 = new SimpleMatrix(Forces);
+            //这里减1是理所当然，第一个单元的第一个节点（1-1）*3+1
+            SimpleMatrix temp1 = Force_1.cols(0, 1).minus(1);
+            SimpleMatrix temp2 = Force_1.cols(1, 2);
 
-        //乘大数法施加位移约束
-        return U;
-    }
-
-    private List<Elementor> readElementorForSolve() {
-        ElementDataRepository elementDataRepository = null;
-        switch (setting.getElementType()) {
-            case TETRAHEDRON:
-                elementDataRepository = new TetrahedronElementDataRepository();
-                break;
-            case HEXAHEDRON:
-                elementDataRepository = new HexahedronElementDataRepository();
-                break;
-            case TEN_NODE_TETRAHEDRON:
-                elementDataRepository = new TenNodeTetrahedronElementDataRepository();
-                break;
+            //这里减1是因为java矩阵的索引是从0开始的
+            SimpleMatrix ForceDOF = temp1.scale(Dof).plus(temp2).minus(1);
+            for (int i = 0; i < ForceDOF.getNumElements(); i++) {
+                int temp = (int) ForceDOF.get(i, 0);
+                double ftemp = Forces[i][2];
+                Force.set(temp, 0, ftemp);
+            }
         }
-        List<Elementor> list = elementDataRepository.getElementListForSolve();
-        return list;
-    }
+        //乘大数法施加位移约束
+        int BigNumber = 100000000;
+        int ConstraintsNumber = Constraints.length;
+        if (ConstraintsNumber > 0) {
+            SimpleMatrix Constraints_1 = new SimpleMatrix(Constraints);
+            //这里减1是理所当然，第一个单元的第一个节点（1-1）*3+1
+            SimpleMatrix temp1 = Constraints_1.cols(0, 1).minus(1);
+            SimpleMatrix temp2 = Constraints_1.cols(1, 2);
 
-    private List<Noder> readNoderForSolve() {
-        NodeRepository nodeRepository = new NodeRepository();
-        List<Noder> list = nodeRepository.getNoderListForSolve();
-        return list;
-    }
-
-    private void inputNodeFromFile() {
-        NodeRepository nodeRepository = new NodeRepository();
-        nodeRepository.initForSolve(this.setting);
-    }
-
-    public void inputElementFromFile() {
-        ElementDataRepository elementDataRepository = new TetrahedronElementDataRepository();
-        elementDataRepository.initForSolve(this.setting);
+            //这里减1是因为java矩阵的索引是从0开始的
+            SimpleMatrix FixedDof = temp1.scale(Dof).plus(temp2).minus(1);
+            for (int i = 0; i < ConstraintsNumber; i++) {
+                int temp = (int) FixedDof.get(i, 0);
+                double new_K = K.get(temp, temp) * BigNumber;
+                K.set(temp, temp, new_K);
+                Force.set(temp, 0, new_K * Constraints[i][2]);
+            }
+        }
+        //求解线程方程组，得出位移
+        SimpleMatrix U = K.invert().mult(Force);
+        return U;
     }
 
     //返回节点受外力
@@ -171,28 +172,10 @@ public class SolveTET extends SolveELE {
         return constraint;
     }
 
-    private void UpdateForResult(USSDEnum ussdEnum, Noder nodeTemp) {
-        NodeRepository nodeRepository = new NodeRepository();
-        nodeRepository.updateResult(ussdEnum, nodeTemp);
-    }
-
-    private SimpleMatrix LinearIsotropicD(double E, double u) {
-        double[][] D = new double[][]{{1 - u, u, u, 0, 0, 0}, {u, 1 - u, u, 0, 0, 0},
-                {u, u, 1 - u, 0, 0, 0}, {0, 0, 0, (1 - 2 * u) / 2, 0, 0}, {0, 0, 0, 0, (1 - 2 * u) / 2, 0},
-                {0, 0, 0, 0, 0, (1 - 2 * u) / 2}};
-        double xishu = E / ((1 + u) * (1 - 2 * u));
-        for (int i = 0; i < D.length; i++) {
-            for (int j = 0; j < D[0].length; j++) {
-                D[i][j] = D[i][j] * xishu;
-            }
-        }
-        return new SimpleMatrix(D);
-    }
-
     private SimpleMatrix Ke(SimpleMatrix D, SimpleMatrix xyz) {
         SimpleMatrix B = new SimpleMatrix(6, 12);
         SimpleMatrix[] ans = ShapeFunction(xyz);
-        double Coefficient = 1 / 6 * ans[0].get(0,0);
+        double Coefficient =  1.0/6.0 * ans[1].get(0, 0);
         SimpleMatrix NDerivative = ans[0];
         for (int i = 0; i < 4; i++) {
             int chu = 3 * i;
@@ -219,7 +202,7 @@ public class SolveTET extends SolveELE {
                 {-1, 1, 0, 0},
                 {-1, 0, 1, 0},
                 {-1, 0, 0, 1}};
-        SimpleMatrix P=new SimpleMatrix(ParentNodes);
+        SimpleMatrix P = new SimpleMatrix(ParentNodes);
         SimpleMatrix Jacobi = P.mult(xyz);
         SimpleMatrix JacobiINV = Jacobi.invert();//这里可以优化一下，改成数值表达式，效率提高15%
         double JacobiDET = Jacobi.determinant();
@@ -229,8 +212,5 @@ public class SolveTET extends SolveELE {
         ans[0] = NDerivative;
         ans[1] = temp;
         return ans;
-    }
-    private SimpleMatrix[] ShapeFunction_Plus(SimpleMatrix xyz) {//这里写优化版本的ShapeFunction
-        return null;
     }
 }

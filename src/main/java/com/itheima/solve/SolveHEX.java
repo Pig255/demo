@@ -28,7 +28,7 @@ public class SolveHEX extends SolveELE {
         inputNodeFromFile();
         //从数据库读取节点、单元信息
         this.noderList = readNoderForSolve();
-        this.elementorList = readElementorForSolve();
+        this.elementorList = this.readElementorForSolve();
         double[][] Nodes = new double[noderList.size()][3];
         double[][] Elements = new double[elementorList.size()][8];
         for (int i = 0; i < Nodes.length; i++) {
@@ -58,21 +58,16 @@ public class SolveHEX extends SolveELE {
         //根据所得的U求出各节点对应的应力、应变值
         //将结果写入数据库
         Noder nodeTemp;
-        for(int i=0;i<noderList.size();i++){
-            nodeTemp=noderList.get(i);
-            nodeTemp.setU_X(U.get(3*i,0));
-            nodeTemp.setU_Y(U.get(3*i+1,0));
-            nodeTemp.setU_Z(U.get(3*i+2,0));
-            noderList.set(i,nodeTemp);
-            USSDEnum ussdEnum=USSDEnum.U;
-            UpdateForResult(ussdEnum,nodeTemp);
+        for (int i = 0; i < noderList.size(); i++) {
+            nodeTemp = noderList.get(i);
+            nodeTemp.setU_X(U.get(3 * i, 0));
+            nodeTemp.setU_Y(U.get(3 * i + 1, 0));
+            nodeTemp.setU_Z(U.get(3 * i + 2, 0));
+            noderList.set(i, nodeTemp);
+            USSDEnum ussdEnum = USSDEnum.U;
+            UpdateForResult(ussdEnum, nodeTemp);
         }
         System.out.println("----------节点位移已经完成求解并入库-----------");
-    }
-
-    private void UpdateForResult(USSDEnum ussdEnum, Noder nodeTemp) {
-        NodeRepository nodeRepository = new NodeRepository();
-        nodeRepository.updateResult(ussdEnum,nodeTemp);
     }
 
     //在这里面写求解主体
@@ -81,7 +76,7 @@ public class SolveHEX extends SolveELE {
         int NodeCount = noderList.size();
         int ElementCount = elementorList.size();
         int Dofs = Dof * NodeCount;
-        SimpleMatrix U = new SimpleMatrix(Dofs, 1);
+
         SimpleMatrix K = new SimpleMatrix(Dofs, Dofs);
         SimpleMatrix Force = new SimpleMatrix(Dofs, 1);
         SimpleMatrix D = LinearIsotropicD(E, u);
@@ -110,10 +105,12 @@ public class SolveHEX extends SolveELE {
             }
             for (int p = 0; p < 24; p++) {
                 for (int q = 0; q < 24; q++) {
-                    K.set(ElementNodeDOF[p], ElementNodeDOF[q], ElementStiffnessMatrix.get(p, q));
+                    K.set(ElementNodeDOF[p], ElementNodeDOF[q],
+                    (K.get(ElementNodeDOF[p], ElementNodeDOF[q])+ElementStiffnessMatrix.get(p, q)));
                 }
             }
         }
+
         //施加外力
         if (Forces.length > 0) {
             SimpleMatrix Force_1 = new SimpleMatrix(Forces);
@@ -148,9 +145,8 @@ public class SolveHEX extends SolveELE {
                 Force.set(temp, 0, orig_K * Constraints[i][2]);
             }
         }
-
         //求解线程方程组，得出位移
-        U = K.invert().mult(Force);
+        SimpleMatrix U = K.invert().mult(Force);
         return U;
     }
 
@@ -176,14 +172,14 @@ public class SolveHEX extends SolveELE {
                         B.set(1, chu + 1, NDerivative.get(1, i));
                         B.set(2, chu + 2, NDerivative.get(2, i));
 
-                        B.set(3, chu, NDerivative.get(1, i));
-                        B.set(3, chu + 1, NDerivative.get(0, i));
+                        B.set(5, chu, NDerivative.get(1, i));
+                        B.set(5, chu + 1, NDerivative.get(0, i));
 
-                        B.set(4, chu + 1, NDerivative.get(2, i));
-                        B.set(4, chu + 2, NDerivative.get(1, i));
+                        B.set(3, chu + 1, NDerivative.get(2, i));
+                        B.set(3, chu + 2, NDerivative.get(1, i));
 
-                        B.set(5, chu, NDerivative.get(2, i));
-                        B.set(5, chu + 2, NDerivative.get(0, i));
+                        B.set(4, chu, NDerivative.get(2, i));
+                        B.set(4, chu + 2, NDerivative.get(0, i));
                     }
                     Ke = Ke.plus(B.transpose().mult(D).mult(B).scale(Coefficient));
                 }
@@ -222,26 +218,12 @@ public class SolveHEX extends SolveELE {
         return ans;
     }
 
-    //线弹性材料应力-应变矩阵
-    private SimpleMatrix LinearIsotropicD(double E, double u) {
-        double[][] D = new double[][]{{1 - u, u, u, 0, 0, 0}, {u, 1 - u, u, 0, 0, 0},
-                {u, u, 1 - u, 0, 0, 0}, {0, 0, 0, (1 - 2 * u) / 2, 0, 0}, {0, 0, 0, 0, (1 - 2 * u) / 2, 0},
-                {0, 0, 0, 0, 0, (1 - 2 * u) / 2}};
-        double xishu = E / ((1 + u) * (1 - 2 * u));
-        for (int i = 0; i < D.length; i++) {
-            for (int j = 0; j < D[0].length; j++) {
-                D[i][j] = D[i][j] * xishu;
-            }
-        }
-        return new SimpleMatrix(D);
-    }
-
     //返回节点受外力
     private double[][] getForceBoundary() {
         double[][] force = new double[5][3];
         int tip = 0;
         for (int i = 0; i < noderList.size(); i++) {
-            if (noderList.get(i).getLOC_Z() == 100 && noderList.get(i).getLOC_Y() == 0) {
+            if (noderList.get(i).getLOC_X() == 55 && noderList.get(i).getLOC_Y() == -10) {
                 force[tip][0] = noderList.get(i).getID();
                 force[tip][1] = 2;
                 force[tip][2] = -100;
@@ -256,7 +238,7 @@ public class SolveHEX extends SolveELE {
         double[][] constraint = new double[90][3];
         int tip = 0;
         for (int i = 0; i < noderList.size(); i++) {
-            if (noderList.get(i).getLOC_Z() == 0) {
+            if (noderList.get(i).getLOC_X() == -45) {
                 for (int j = 1; j < 4; j++) {
                     constraint[tip][0] = noderList.get(i).getID();
                     constraint[tip][1] = j;
@@ -268,40 +250,4 @@ public class SolveHEX extends SolveELE {
         return constraint;
     }
 
-    //从数据库读取单元数据
-    private List<Elementor> readElementorForSolve() {
-        ElementDataRepository elementDataRepository = null;
-        switch (setting.getElementType()) {
-            case TETRAHEDRON:
-                elementDataRepository = new TetrahedronElementDataRepository();
-                break;
-            case HEXAHEDRON:
-                elementDataRepository = new HexahedronElementDataRepository();
-                break;
-            case TEN_NODE_TETRAHEDRON:
-                elementDataRepository = new TenNodeTetrahedronElementDataRepository();
-                break;
-        }
-        List<Elementor> list = elementDataRepository.getElementListForSolve();
-        return list;
-    }
-
-    //从数据库读取节点数据
-    private List<Noder> readNoderForSolve() {
-        NodeRepository nodeRepository = new NodeRepository();
-        List<Noder> list = nodeRepository.getNoderListForSolve();
-        return list;
-    }
-
-    //将节点文件传入数据库
-    private void inputNodeFromFile() {
-        NodeRepository nodeRepository = new NodeRepository();
-        nodeRepository.initForSolve(this.setting);
-    }
-
-    //将单元文件传入数据库
-    public void inputElementFromFile() {
-        ElementDataRepository elementDataRepository = new HexahedronElementDataRepository();
-        elementDataRepository.initForSolve(this.setting);
-    }
 }

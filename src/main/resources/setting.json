@@ -15,7 +15,6 @@
     0
   ],
   "isImport": 0,
-  "isImportElement": 1,
   "useRootPath": 1,
   "vShaderFile": "shaders/face.vs",
   "fShaderFile": "shaders/face.fs",
