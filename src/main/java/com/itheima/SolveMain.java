@@ -18,6 +18,4 @@ public class SolveMain {
         GLListener glListener = new GLListener();
         glListener.setUp();
     }
-
-
 }

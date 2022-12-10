@@ -148,10 +148,18 @@ public class SolveTET extends SolveELE {
             if (noderList.get(i).getLOC_Z() == 100 && noderList.get(i).getLOC_Y() == 0) {
                 force[tip][0] = noderList.get(i).getID();
                 force[tip][1] = 2;
-                force[tip][2] = -100;
+                force[tip][2] = 100;
                 tip++;
             }
         }
+//        double[][] force = new double[2][3];
+//        force[0][0]=15;
+//        force[0][1]=2;
+//        force[0][2]=500;
+//        force[1][0]=137;
+//        force[1][1]=2;
+//        force[1][2]=500;
+
         return force;
     }
 
@@ -183,14 +191,14 @@ public class SolveTET extends SolveELE {
             B.set(1, chu + 1, NDerivative.get(1, i));
             B.set(2, chu + 2, NDerivative.get(2, i));
 
-            B.set(3, chu, NDerivative.get(1, i));
-            B.set(3, chu + 1, NDerivative.get(0, i));
+            B.set(5, chu, NDerivative.get(1, i));
+            B.set(5, chu + 1, NDerivative.get(0, i));
 
-            B.set(4, chu + 1, NDerivative.get(2, i));
-            B.set(4, chu + 2, NDerivative.get(1, i));
+            B.set(3, chu + 1, NDerivative.get(2, i));
+            B.set(3, chu + 2, NDerivative.get(1, i));
 
-            B.set(5, chu, NDerivative.get(2, i));
-            B.set(5, chu + 2, NDerivative.get(0, i));
+            B.set(4, chu, NDerivative.get(2, i));
+            B.set(4, chu + 2, NDerivative.get(0, i));
         }
         SimpleMatrix Ke = B.transpose().mult(D).mult(B).scale(Coefficient);
         return Ke;

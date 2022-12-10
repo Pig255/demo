@@ -137,7 +137,7 @@ public class NodeRepository implements CMDSettingListener {
             coord[1] = (float) noder.getLOC_Y();
             coord[2] = (float) noder.getLOC_Z();
             curNode.setCoord(coord);
-            curNode.setData((float) noder.getSTRESS_X());//这里做成自动判断
+            curNode.setData((float) noder.getU_Y());//这里做成自动判断
             this.nodeMap.put(noder.getID(), curNode);
             curMaxData = Math.max(curNode.getData(), curMaxData);
             curMinData = Math.min(curNode.getData(), curMinData);
