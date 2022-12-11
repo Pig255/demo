@@ -46,8 +46,13 @@ public class SolveTET extends SolveELE {
         //设置E、u的大小（弹性模量与泊松比）
         double E = 210000;
         double u = 0.3;
-        SimpleMatrix U = staticSolver(E, u, Forces, Constraints, Nodes, Elements);
+        SimpleMatrix D = LinearIsotropicD(E, u);
+        SimpleMatrix U = staticSolver(D, Forces, Constraints, Nodes, Elements);
         //根据所得的U求出各节点对应的应力、应变值
+        SimpleMatrix[] SSans = getSS(D, U);
+        SimpleMatrix Strain = SSans[0];
+        SimpleMatrix Stress = SSans[1];
+        //磨平操作、得出磨平后的应力应变。
 
         //将结果写入数据库
         Noder nodeTemp;
@@ -63,14 +68,68 @@ public class SolveTET extends SolveELE {
         System.out.println("----------节点位移已经完成求解并入库-----------");
     }
 
-    private SimpleMatrix staticSolver(double E, double u, double[][] Forces, double[][] Constraints, double[][] Nodes, double[][] Elements) {
+    private SimpleMatrix[] getSS(SimpleMatrix D, SimpleMatrix U) {
+        SimpleMatrix Stress = new SimpleMatrix(6, elementorList.size() * 4);
+        SimpleMatrix Strain = new SimpleMatrix(6, elementorList.size() * 4);
+        for (int i = 0; i < elementorList.size(); i++) {
+            Elementor elementor = elementorList.get(i);
+            int[] nodesArray = Arrays.copyOfRange(elementor.getNodesArray(), 0, 4);
+            double[][] xyz_ori = new double[4][3];
+            for (int p = 0; p < nodesArray.length; p++) {
+                Noder noder = noderList.get(nodesArray[p] - 1);
+                xyz_ori[p][0] = noder.getLOC_X();
+                xyz_ori[p][1] = noder.getLOC_Y();
+                xyz_ori[p][2] = noder.getLOC_Z();
+            }
+            SimpleMatrix EleNodeCoord = new SimpleMatrix(xyz_ori);
+            double[] EleNodeDof = new double[12];
+            //给EleNodeDof赋值
+            for (int k = 0; k < 4; k++) {
+                EleNodeDof[k * 3] = nodesArray[k] * 3;
+                EleNodeDof[k * 3 + 1] = nodesArray[k] * 3 + 1;
+                EleNodeDof[k * 3 + 2] = nodesArray[k] * 3 + 2;
+            }
+            SimpleMatrix[] ans = ShapeFunction(EleNodeCoord);
+            SimpleMatrix dNdx = ans[0];
+            double[][] Ue_temp = new double[12][1];
+            for (int k = 0; k < 12; k++) {
+                Ue_temp[k][0] = U.get((int) EleNodeDof[k], 0);
+            }
+            SimpleMatrix Ue = new SimpleMatrix(Ue_temp);
+            Ue.reshape(3, 4);
+            SimpleMatrix HammerPointStrain3_3 = Ue.mult(dNdx.transpose());
+            double[] temp = new double[]{HammerPointStrain3_3.get(0, 0),
+                    HammerPointStrain3_3.get(1, 1), HammerPointStrain3_3.get(2, 2),
+                    HammerPointStrain3_3.get(0, 1) + HammerPointStrain3_3.get(1, 0),
+                    HammerPointStrain3_3.get(0, 2) + HammerPointStrain3_3.get(2, 0),
+                    HammerPointStrain3_3.get(1, 2) + HammerPointStrain3_3.get(2, 1)};
+            SimpleMatrix HammerPointStrain = new SimpleMatrix(6, 1, true, temp);
+            SimpleMatrix HammerPointStress = D.mult(HammerPointStrain);
+            for (int p = 0; p < 6; p++) {
+                double strainTemp = HammerPointStrain.get(p, 0);
+                Strain.set(p, 4 * i, strainTemp);
+                Strain.set(p, 4 * i + 1, strainTemp);
+                Strain.set(p, 4 * i + 2, strainTemp);
+                Strain.set(p, 4 * i + 3, strainTemp);
+
+                double stressTemp = HammerPointStress.get(p, 0);
+                Stress.set(p, 4 * i, stressTemp);
+                Stress.set(p, 4 * i + 1, stressTemp);
+                Stress.set(p, 4 * i + 2, stressTemp);
+                Stress.set(p, 4 * i + 3, stressTemp);
+            }
+        }
+        SimpleMatrix[] ans = new SimpleMatrix[]{Strain, Stress};
+        return ans;
+    }
+
+    private SimpleMatrix staticSolver(SimpleMatrix D, double[][] Forces, double[][] Constraints, double[][] Nodes, double[][] Elements) {
         int Dof = 3;
         int NodeCount = noderList.size();
         int ElementCount = elementorList.size();
         int Dofs = Dof * NodeCount;
         SimpleMatrix K = new SimpleMatrix(Dofs, Dofs);
         SimpleMatrix Force = new SimpleMatrix(Dofs, 1);
-        SimpleMatrix D = LinearIsotropicD(E, u);
         for (int i = 0; i < ElementCount; i++) {
             Elementor elementor = elementorList.get(i);
             int[] nodesArray = Arrays.copyOfRange(elementor.getNodesArray(), 0, 4);
@@ -98,7 +157,7 @@ public class SolveTET extends SolveELE {
             for (int p = 0; p < 12; p++) {
                 for (int q = 0; q < 12; q++) {
                     K.set(ElementNodeDOF[p], ElementNodeDOF[q],
-                    (K.get(ElementNodeDOF[p], ElementNodeDOF[q])+ElementStiffnessMatrix.get(p, q)));
+                            (K.get(ElementNodeDOF[p], ElementNodeDOF[q]) + ElementStiffnessMatrix.get(p, q)));
                 }
             }
         }
@@ -152,14 +211,6 @@ public class SolveTET extends SolveELE {
                 tip++;
             }
         }
-//        double[][] force = new double[2][3];
-//        force[0][0]=15;
-//        force[0][1]=2;
-//        force[0][2]=500;
-//        force[1][0]=137;
-//        force[1][1]=2;
-//        force[1][2]=500;
-
         return force;
     }
 
@@ -183,7 +234,7 @@ public class SolveTET extends SolveELE {
     private SimpleMatrix Ke(SimpleMatrix D, SimpleMatrix xyz) {
         SimpleMatrix B = new SimpleMatrix(6, 12);
         SimpleMatrix[] ans = ShapeFunction(xyz);
-        double Coefficient =  1.0/6.0 * ans[1].get(0, 0);
+        double Coefficient = 1.0 / 6.0 * ans[1].get(0, 0);
         SimpleMatrix NDerivative = ans[0];
         for (int i = 0; i < 4; i++) {
             int chu = 3 * i;
